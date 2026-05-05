@@ -7,6 +7,7 @@ Sistema para obtener, procesar y administrar bares/restaurantes de Tucuman de fo
 - Backend: Python, FastAPI, SQLAlchemy, SQLite
 - Frontend: Vite, React, TypeScript
 - IA: OpenAI API con fallback local
+- Notificaciones: Slack Incoming Webhook opcional
 - Deploy: Docker Compose
 - Automatizacion: script de ingesta reutilizable por cron, Task Scheduler o n8n
 
@@ -18,6 +19,7 @@ Sistema para obtener, procesar y administrar bares/restaurantes de Tucuman de fo
 - Clasificacion y descripcion con IA.
 - Deteccion de duplicados por normalizacion, similitud y, si hay API key, apoyo de IA.
 - Logs de importacion.
+- Notificacion Slack con conteos, fallback y muestra de items scrapeados.
 - Dashboard simple con metricas.
 
 ## Uso local sin Docker
@@ -88,6 +90,8 @@ Variables utiles para deploy:
 
 ```bash
 OPENAI_API_KEY=tu_api_key
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
+SLACK_SCRAPE_PREVIEW_LIMIT=10
 DATABASE_URL=sqlite:///./data/app.db
 VITE_API_URL=https://api.tudominio.com
 CORS_ORIGINS=https://app.tudominio.com

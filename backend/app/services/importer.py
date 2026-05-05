@@ -9,6 +9,7 @@ from app.services.ai import PlaceAI
 from app.services.mock_data import MOCK_PLACES
 from app.services.normalization import dedupe_key, normalize_text
 from app.services.scraper import ScrapedPlace, TucumanTurismoScraper
+from app.services.slack import SlackImportSummary, SlackNotifier
 
 
 class PlaceImporter:
@@ -17,24 +18,33 @@ class PlaceImporter:
         self.settings = get_settings()
         self.scraper = TucumanTurismoScraper()
         self.ai = PlaceAI()
+        self.slack = SlackNotifier()
 
     def run(self) -> ImportLog:
         log = ImportLog(source=self.scraper.source, status="running")
         self.db.add(log)
         self.db.commit()
         self.db.refresh(log)
+        scraped_names: list[str] = []
+        source_items_found = 0
+        used_fallback = False
+        fallback_reason = None
 
         try:
             scrape_warning = None
             try:
                 scraped = self.scraper.fetch(self.settings.source_url)
+                source_items_found = len(scraped)
             except Exception as exc:
                 scrape_warning = f"Source unavailable, used mock dataset: {exc}"
                 scraped = []
             if not scraped:
+                used_fallback = True
+                fallback_reason = scrape_warning or "Source returned no items, used mock dataset"
                 scraped = [ScrapedPlace(**item) for item in MOCK_PLACES]
-                log.error_message = scrape_warning or "Source returned no items, used mock dataset"
+                log.error_message = fallback_reason
             log.items_found = len(scraped)
+            scraped_names = [item.name for item in scraped]
 
             for item in scraped:
                 raw = item.__dict__
@@ -75,6 +85,15 @@ class PlaceImporter:
             log.finished_at = datetime.utcnow()
             self.db.commit()
             self.db.refresh(log)
+            self.slack.notify_import_finished(
+                SlackImportSummary(
+                    log=log,
+                    scraped_names=scraped_names,
+                    source_items_found=source_items_found,
+                    used_fallback=used_fallback,
+                    fallback_reason=fallback_reason,
+                )
+            )
 
         return log
 

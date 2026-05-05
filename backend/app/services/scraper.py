@@ -31,7 +31,7 @@ class TucumanTurismoScraper:
     def parse(self, html: str, url: str) -> list[ScrapedPlace]:
         soup = BeautifulSoup(html, "html.parser")
         cards = soup.select(".card, article, .item, .contenido")
-        candidates = cards if len(cards) > 3 else soup.select("li, tr")
+        candidates = cards or soup.select("li, tr")
         results: list[ScrapedPlace] = []
 
         for node in candidates:
