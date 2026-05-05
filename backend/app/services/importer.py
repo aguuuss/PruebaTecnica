@@ -1,6 +1,6 @@
 from datetime import datetime
+from difflib import SequenceMatcher
 
-from rapidfuzz import fuzz
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -86,7 +86,7 @@ class PlaceImporter:
             existing_key = dedupe_key(place.name, place.address)
             if incoming_key and incoming_key == existing_key:
                 return place
-            score = fuzz.token_set_ratio(incoming_key, existing_key)
-            if score >= 88:
+            score = SequenceMatcher(None, incoming_key, existing_key).ratio()
+            if score >= 0.88:
                 return place
         return None
