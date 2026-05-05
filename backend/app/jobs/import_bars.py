@@ -1,8 +1,10 @@
+from app.core.logging import configure_logging
 from app.db import SessionLocal, init_db
 from app.services.importer import PlaceImporter
 
 
 def main() -> None:
+    configure_logging()
     init_db()
     db = SessionLocal()
     try:

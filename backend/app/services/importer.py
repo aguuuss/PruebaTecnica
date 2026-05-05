@@ -1,5 +1,6 @@
 from datetime import datetime
 from difflib import SequenceMatcher
+import logging
 
 from sqlalchemy.orm import Session
 
@@ -10,6 +11,8 @@ from app.services.mock_data import MOCK_PLACES
 from app.services.normalization import dedupe_key, normalize_text
 from app.services.scraper import ScrapedPlace, TucumanTurismoScraper
 from app.services.slack import SlackImportSummary, SlackNotifier
+
+logger = logging.getLogger(__name__)
 
 
 class PlaceImporter:
@@ -35,14 +38,25 @@ class PlaceImporter:
             try:
                 scraped = self.scraper.fetch(self.settings.source_url)
                 source_items_found = len(scraped)
+                logger.info(
+                    "Scraper fetch completed source_items_found=%s names=%s",
+                    source_items_found,
+                    [item.name for item in scraped[:20]],
+                )
             except Exception as exc:
                 scrape_warning = f"Source unavailable, used mock dataset: {exc}"
+                logger.exception("Scraper fetch failed")
                 scraped = []
             if not scraped:
                 used_fallback = True
                 fallback_reason = scrape_warning or "Source returned no items, used mock dataset"
                 scraped = [ScrapedPlace(**item) for item in MOCK_PLACES]
                 log.error_message = fallback_reason
+                logger.warning(
+                    "Using fallback dataset fallback_reason=%s fallback_count=%s",
+                    fallback_reason,
+                    len(scraped),
+                )
             log.items_found = len(scraped)
             scraped_names = [item.name for item in scraped]
 
@@ -78,9 +92,17 @@ class PlaceImporter:
                     log.created_count += 1
 
             log.status = "success"
+            logger.info(
+                "Import completed items_found=%s created_count=%s updated_count=%s duplicate_count=%s",
+                log.items_found,
+                log.created_count,
+                log.updated_count,
+                log.duplicate_count,
+            )
         except Exception as exc:
             log.status = "error"
             log.error_message = str(exc)
+            logger.exception("Import failed")
         finally:
             log.finished_at = datetime.utcnow()
             self.db.commit()

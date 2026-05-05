@@ -1,7 +1,10 @@
 from dataclasses import dataclass
+import logging
 
 import httpx
 from bs4 import BeautifulSoup
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -20,8 +23,17 @@ class TucumanTurismoScraper:
     source = "Tucuman Turismo"
     stop_markers = {
         "enlaces útiles",
+        "enlaces utiles",
         "casa de tucumán",
+        "casa de tucuman",
         "anexo ente tucumán turismo",
+        "anexo ente tucuman turismo",
+    }
+    ignored_titles = {
+        "bares y restaurantes",
+        "compartir",
+        "conocé los principales bares y restaurantes de la provincia.",
+        "conoce los principales bares y restaurantes de la provincia.",
     }
     field_prefixes = (
         "dirección:",
@@ -50,59 +62,104 @@ class TucumanTurismoScraper:
         with httpx.Client(timeout=20, headers=headers, follow_redirects=True) as client:
             response = client.get(url)
             response.raise_for_status()
+        logger.info("Fetched scraper source url=%s html_length=%s", url, len(response.text))
         return self.parse(response.text, url)
 
     def parse(self, html: str, url: str) -> list[ScrapedPlace]:
         soup = BeautifulSoup(html, "html.parser")
         cards = soup.select(".card, article, .item, .contenido")
         candidates = cards or soup.select("li, tr")
+        logger.info(
+            "Starting scraper parse url=%s candidate_count=%s card_count=%s",
+            url,
+            len(candidates),
+            len(cards),
+        )
         results = self._parse_nodes(candidates, url)
+        logger.info(
+            "Node parsing finished result_count=%s names=%s",
+            len(results),
+            [place.name for place in results[:10]],
+        )
         if len(results) <= 1:
-            results = self._merge_results(results, self._parse_structured_text(soup, url))
+            structured_results = self._parse_structured_text(soup, url)
+            logger.info(
+                "Structured parsing finished result_count=%s names=%s",
+                len(structured_results),
+                [place.name for place in structured_results[:15]],
+            )
+            results = self._merge_results(results, structured_results)
 
         unique: dict[str, ScrapedPlace] = {}
         for place in results:
             key = f"{place.name.lower()}|{(place.address or '').lower()}"
             unique.setdefault(key, place)
-        return list(unique.values())
+        final_results = list(unique.values())
+        logger.info(
+            "Scraper parse completed result_count=%s names=%s",
+            len(final_results),
+            [place.name for place in final_results[:20]],
+        )
+        return final_results
 
     def _parse_nodes(self, candidates, url: str) -> list[ScrapedPlace]:
         results: list[ScrapedPlace] = []
+        skipped_large_nodes = 0
 
         for node in candidates:
             text = " ".join(node.get_text(" ", strip=True).split())
             if len(text) < 8:
+                continue
+            lowered = text.lower()
+            if lowered.count("dirección:") + lowered.count("direccion:") + lowered.count("localidad:") >= 3:
+                skipped_large_nodes += 1
                 continue
 
             name_node = node.select_one("h1, h2, h3, h4, strong, b, a")
             name = name_node.get_text(" ", strip=True) if name_node else text.split(" - ")[0]
             if not name or len(name) > 120:
                 continue
+            if name.lower() in self.ignored_titles:
+                continue
 
-            lowered = text.lower()
             if not any(word in lowered for word in ("bar", "restaurant", "restaurante", "cafe", "café", "comida", "parrilla")):
+                continue
+
+            address = self._extract_after(text, ["Direccion:", "Dirección:", "Domicilio:", "Ubicacion:", "Ubicación:"])
+            city = self._extract_after(text, ["Localidad:", "Ciudad:"])
+            contact = self._extract_after(text, ["Telefono:", "Teléfono:", "Contacto:", "WhatsApp:"])
+            opening_hours = self._extract_after(text, ["Horario:", "Horarios:"])
+            services = self._extract_after(text, ["Servicios:", "Servicio:"])
+            if not any((address, city, contact, opening_hours, services)):
                 continue
 
             results.append(
                 ScrapedPlace(
                     name=name,
-                    address=self._extract_after(text, ["Direccion:", "Dirección:", "Domicilio:", "Ubicacion:", "Ubicación:"]),
-                    city=self._extract_after(text, ["Localidad:", "Ciudad:"]),
-                    contact=self._extract_after(text, ["Telefono:", "Teléfono:", "Contacto:", "WhatsApp:"]),
-                    opening_hours=self._extract_after(text, ["Horario:", "Horarios:"]),
-                    services=self._extract_after(text, ["Servicios:", "Servicio:"]),
+                    address=address,
+                    city=city,
+                    contact=contact,
+                    opening_hours=opening_hours,
+                    services=services,
                     source=self.source,
                     source_url=url,
                 )
             )
+        logger.info(
+            "Node parsing stats result_count=%s skipped_large_nodes=%s",
+            len(results),
+            skipped_large_nodes,
+        )
         return results
 
     def _parse_structured_text(self, soup: BeautifulSoup, url: str) -> list[ScrapedPlace]:
+        root = soup.select_one("article, main, .contenido, .field-item, .node__content") or soup
         lines = [
             " ".join(line.split())
-            for line in soup.get_text("\n").splitlines()
+            for line in root.get_text("\n").splitlines()
             if " ".join(line.split())
         ]
+        logger.info("Structured parsing input prepared line_count=%s", len(lines))
         results: list[ScrapedPlace] = []
         current_name: str | None = None
         current_fields: dict[str, list[str] | str | None] = {
@@ -116,14 +173,14 @@ class TucumanTurismoScraper:
 
         for line in lines:
             lowered = line.lower()
-            if line == "Bares y Restaurantes":
+            if "bares y restaurantes" in lowered:
                 in_listing = True
                 continue
             if not in_listing:
                 continue
             if lowered in self.stop_markers:
                 break
-            if line == "Compartir" or line == "Conocé los principales bares y restaurantes de la provincia.":
+            if lowered in self.ignored_titles:
                 continue
 
             if self._is_name_line(line):
@@ -151,6 +208,11 @@ class TucumanTurismoScraper:
             if place:
                 results.append(place)
 
+        logger.info(
+            "Structured parsing stats result_count=%s names=%s",
+            len(results),
+            [place.name for place in results[:20]],
+        )
         return results
 
     def _consume_field_line(self, fields: dict[str, list[str] | str | None], line: str) -> None:
@@ -189,6 +251,8 @@ class TucumanTurismoScraper:
         contact = " / ".join(fields["contact"]) if isinstance(fields["contact"], list) else fields["contact"]
         opening_hours = " / ".join(fields["opening_hours"]) if isinstance(fields["opening_hours"], list) else fields["opening_hours"]
         services = " / ".join(fields["services"]) if isinstance(fields["services"], list) else fields["services"]
+        if not any((address, contact, opening_hours, services)):
+            return None
         return ScrapedPlace(
             name=name,
             address=address or None,
@@ -206,11 +270,13 @@ class TucumanTurismoScraper:
             return False
         if lowered in self.stop_markers:
             return False
+        if lowered in self.ignored_titles:
+            return False
         if lowered.startswith(self.field_prefixes):
             return False
-        if line in {"Bares y Restaurantes", "Compartir"}:
-            return False
         if line.startswith("http") or line.startswith("www."):
+            return False
+        if "inicio" in lowered:
             return False
         return True
 

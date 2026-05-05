@@ -2,10 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
+from app.core.logging import configure_logging
 from app.db import init_db
 from app.routers import dashboard, imports, places
 
 settings = get_settings()
+configure_logging()
 
 app = FastAPI(title="Tucuman Places Automator")
 
