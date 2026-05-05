@@ -1,0 +1,7 @@
+app.tudominio.com {
+  reverse_proxy frontend:80
+}
+
+api.tudominio.com {
+  reverse_proxy backend:8000
+}
