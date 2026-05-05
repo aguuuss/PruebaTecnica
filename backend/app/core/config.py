@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     slack_webhook_url: str | None = None
     slack_scrape_preview_limit: int = 10
+    import_run_token: str | None = None
     database_url: str = "sqlite:///./data/app.db"
     source_url: str = "https://www.tucumanturismo.gob.ar/articulos/articulo/174/bares-y-restaurantes"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"

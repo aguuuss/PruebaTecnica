@@ -4,6 +4,7 @@ import { RefreshCcw, Search, Trash2, Save, Pencil, X, Play } from "lucide-react"
 import "./styles.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const IMPORT_TOKEN_STORAGE_KEY = "import-run-token";
 
 type Place = {
   id: number;
@@ -75,6 +76,7 @@ function App() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [importToken, setImportToken] = useState(() => localStorage.getItem(IMPORT_TOKEN_STORAGE_KEY) || "");
   const [editing, setEditing] = useState<number | "new" | null>(null);
   const [draft, setDraft] = useState<Draft>(emptyDraft());
 
@@ -97,11 +99,25 @@ function App() {
     load().catch((err) => setError(err.message));
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem(IMPORT_TOKEN_STORAGE_KEY, importToken);
+  }, [importToken]);
+
   async function runImport() {
+    if (!importToken.trim()) {
+      setError("Ingresa el token para ejecutar la importacion");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
-      await api<ImportLog>("/imports/run", { method: "POST" });
+      await api<ImportLog>("/imports/run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${importToken.trim()}`,
+        },
+      });
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error importando datos");
@@ -158,10 +174,19 @@ function App() {
           <p className="eyebrow">Automatizacion + IA</p>
           <h1>Bares de Tucuman</h1>
         </div>
-        <button className="primary" onClick={runImport} disabled={loading}>
-          {loading ? <RefreshCcw className="spin" size={18} /> : <Play size={18} />}
-          Importar datos
-        </button>
+        <div className="import-controls">
+          <input
+            type="password"
+            value={importToken}
+            onChange={(event) => setImportToken(event.target.value)}
+            placeholder="Token importacion"
+            autoComplete="off"
+          />
+          <button className="primary" onClick={runImport} disabled={loading}>
+            {loading ? <RefreshCcw className="spin" size={18} /> : <Play size={18} />}
+            Importar datos
+          </button>
+        </div>
       </header>
 
       {dashboard && (

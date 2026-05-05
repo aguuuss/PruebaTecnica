@@ -67,6 +67,16 @@ textarea {
   margin-bottom: 24px;
 }
 
+.import-controls {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.import-controls input {
+  min-width: 240px;
+}
+
 .eyebrow {
   color: #2d705f;
   font-size: 13px;
@@ -257,6 +267,23 @@ h2 {
 
 .log strong {
   text-transform: capitalize;
+}
+
+@media (max-width: 960px) {
+  .topbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .import-controls {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .import-controls input,
+  .import-controls button {
+    width: 100%;
+  }
 }
 
 .log span {

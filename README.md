@@ -92,6 +92,7 @@ Variables utiles para deploy:
 OPENAI_API_KEY=tu_api_key
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
 SLACK_SCRAPE_PREVIEW_LIMIT=10
+IMPORT_RUN_TOKEN=un_token_largo_y_aleatorio
 DATABASE_URL=sqlite:///./data/app.db
 VITE_API_URL=https://api.tudominio.com
 CORS_ORIGINS=https://app.tudominio.com
@@ -103,6 +104,12 @@ El core automatizable es:
 
 ```bash
 docker compose exec backend python -m app.jobs.import_bars
+```
+
+Si queres disparar la importacion por HTTP desde la UI, n8n o curl, el endpoint `POST /imports/run` requiere:
+
+```bash
+Authorization: Bearer $IMPORT_RUN_TOKEN
 ```
 
 Opciones:
