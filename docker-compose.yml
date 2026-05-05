@@ -7,16 +7,16 @@ services:
     volumes:
       - app_data:/app/data
     ports:
-      - "8000:8000"
+      - "${BACKEND_BIND_HOST:-127.0.0.1}:${BACKEND_HOST_PORT:-18000}:8000"
     restart: unless-stopped
 
   frontend:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+        VITE_API_URL: ${VITE_API_URL:-https://api.example.com}
     ports:
-      - "5173:80"
+      - "${FRONTEND_BIND_HOST:-127.0.0.1}:${FRONTEND_HOST_PORT:-18173}:80"
     depends_on:
       - backend
     restart: unless-stopped

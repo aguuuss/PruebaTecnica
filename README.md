@@ -73,16 +73,17 @@ docker compose exec backend python -m app.jobs.import_bars
 
 1. Clonar/subir el proyecto al VPS.
 2. Crear `.env` desde `.env.example`.
-3. Configurar `PUBLIC_API_URL` con el dominio del backend, por ejemplo `https://api.tudominio.com`.
+3. Configurar `VITE_API_URL` con el dominio publico del backend, por ejemplo `https://api.tudominio.com`.
+4. Elegir puertos locales libres en la VPS para no pisar otras apps. Por defecto este proyecto usa `127.0.0.1:18000` para backend y `127.0.0.1:18173` para frontend.
 4. Levantar:
 
 ```bash
 docker compose -f docker-compose.yml up -d --build
 ```
 
-5. Poner Caddy, Nginx Proxy Manager, Traefik o Nginx delante:
-   - `app.tudominio.com` -> `frontend:80`
-   - `api.tudominio.com` -> `backend:8000`
+5. Poner Nginx delante:
+   - `app.tudominio.com` -> `127.0.0.1:18173`
+   - `api.tudominio.com` -> `127.0.0.1:18000`
 
 El archivo `deploy/Caddyfile.example` deja un ejemplo listo para adaptar.
 
@@ -96,6 +97,38 @@ IMPORT_RUN_TOKEN=un_token_largo_y_aleatorio
 DATABASE_URL=sqlite:///./data/app.db
 VITE_API_URL=https://api.tudominio.com
 CORS_ORIGINS=https://app.tudominio.com
+BACKEND_BIND_HOST=127.0.0.1
+BACKEND_HOST_PORT=18000
+FRONTEND_BIND_HOST=127.0.0.1
+FRONTEND_HOST_PORT=18173
+```
+
+Ejemplo de Nginx en el host:
+
+```nginx
+server {
+    server_name app.tudominio.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:18173;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+server {
+    server_name api.tudominio.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:18000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
 ```
 
 ## Automatizacion
