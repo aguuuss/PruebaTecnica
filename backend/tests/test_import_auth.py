@@ -1,14 +1,14 @@
 from fastapi.testclient import TestClient
 
+from app.core.config import get_settings
 from app.main import app
-from app.routers import imports
 
 
 client = TestClient(app)
 
 
 def test_run_import_requires_configured_token(monkeypatch):
-    settings = imports.get_settings()
+    settings = get_settings()
     monkeypatch.setattr(settings, "import_run_token", None)
 
     response = client.post("/imports/run")
@@ -18,7 +18,7 @@ def test_run_import_requires_configured_token(monkeypatch):
 
 
 def test_run_import_rejects_missing_or_invalid_token(monkeypatch):
-    settings = imports.get_settings()
+    settings = get_settings()
     monkeypatch.setattr(settings, "import_run_token", "secret-token")
 
     missing = client.post("/imports/run")

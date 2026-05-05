@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.core.auth import require_import_token
 from app.db import get_db
-from app.models import Place
-from app.schemas import PlaceCreate, PlaceRead, PlaceUpdate
+from app.models import ImportLog, Place
+from app.schemas import PlaceCreate, PlaceRead, PlaceResetResponse, PlaceUpdate
 from app.services.normalization import normalize_text
 
 router = APIRouter(prefix="/places", tags=["places"])
@@ -37,6 +38,18 @@ def create_place(payload: PlaceCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(place)
     return place
+
+
+@router.delete("/reset", response_model=PlaceResetResponse)
+def reset_places(_: None = Depends(require_import_token), db: Session = Depends(get_db)):
+    deleted_places = db.query(Place).delete()
+    deleted_logs = db.query(ImportLog).delete()
+    db.commit()
+    return {
+        "status": "success",
+        "deleted_places": deleted_places,
+        "deleted_logs": deleted_logs,
+    }
 
 
 @router.patch("/{place_id}", response_model=PlaceRead)

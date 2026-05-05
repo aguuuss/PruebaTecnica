@@ -65,3 +65,9 @@ class DashboardRead(BaseModel):
     inactive_places: int
     categories: dict[str, int]
     last_import: ImportLogRead | None
+
+
+class PlaceResetResponse(BaseModel):
+    status: str
+    deleted_places: int
+    deleted_logs: int

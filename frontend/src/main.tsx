@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { RefreshCcw, Search, Trash2, Save, Pencil, X, Play } from "lucide-react";
+import { RefreshCcw, Search, Trash2, Save, Pencil, X, Play, DatabaseZap } from "lucide-react";
 import "./styles.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -80,13 +80,30 @@ function App() {
   const [editing, setEditing] = useState<number | "new" | null>(null);
   const [draft, setDraft] = useState<Draft>(emptyDraft());
 
-  const filtered = useMemo(() => places, [places]);
+  const filtered = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!term) {
+      return places;
+    }
+    return places.filter((place) => {
+      const haystack = [
+        place.name,
+        place.address || "",
+        place.city || "",
+        place.category,
+        place.description || "",
+        place.services || "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [places, query]);
 
   async function load() {
     setError("");
-    const search = query ? `?q=${encodeURIComponent(query)}` : "";
     const [placeData, dashboardData, logData] = await Promise.all([
-      api<Place[]>(`/places${search}`),
+      api<Place[]>("/places"),
       api<Dashboard>("/dashboard"),
       api<ImportLog[]>("/imports/logs"),
     ]);
@@ -121,6 +138,34 @@ function App() {
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error importando datos");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function resetDatabase() {
+    if (!importToken.trim()) {
+      setError("Ingresa el token para vaciar la base");
+      return;
+    }
+    if (!window.confirm("Esto va a borrar lugares y logs de importacion. Continuar?")) {
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      await api<{ status: string; deleted_places: number; deleted_logs: number }>("/places/reset", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${importToken.trim()}`,
+        },
+      });
+      setEditing(null);
+      setDraft(emptyDraft());
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error vaciando la base");
     } finally {
       setLoading(false);
     }
@@ -186,6 +231,10 @@ function App() {
             {loading ? <RefreshCcw className="spin" size={18} /> : <Play size={18} />}
             Importar datos
           </button>
+          <button className="danger" onClick={resetDatabase} disabled={loading}>
+            <DatabaseZap size={18} />
+            Vaciar base
+          </button>
         </div>
       </header>
 
@@ -204,7 +253,7 @@ function App() {
             <div className="search">
               <Search size={18} />
               <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar por nombre, direccion o ciudad" />
-              <button title="Buscar" onClick={() => load().catch((err) => setError(err.message))}>
+              <button title="Recargar" onClick={() => load().catch((err) => setError(err.message))}>
                 <RefreshCcw size={17} />
               </button>
             </div>
@@ -241,15 +290,20 @@ function App() {
         </div>
 
         <aside className="panel side-panel">
-          <h2>Ultimas cargas</h2>
-          {logs.map((log) => (
-            <div key={log.id} className="log">
-              <strong>{log.status}</strong>
-              <span>{new Date(log.started_at).toLocaleString()}</span>
-              <p>{log.items_found} encontrados · {log.created_count} nuevos · {log.updated_count} actualizados</p>
-              {log.error_message && <small>{log.error_message}</small>}
-            </div>
-          ))}
+          <div className="side-panel-header">
+            <h2>Ultimas cargas</h2>
+          </div>
+          <div className="logs-list">
+            {logs.length === 0 && <div className="logs-empty">Sin actividad reciente</div>}
+            {logs.map((log) => (
+              <div key={log.id} className="log">
+                <strong>{log.status}</strong>
+                <span>{new Date(log.started_at).toLocaleString()}</span>
+                <p>{log.items_found} encontrados · {log.created_count} nuevos · {log.updated_count} actualizados</p>
+                {log.error_message && <small>{log.error_message}</small>}
+              </div>
+            ))}
+          </div>
         </aside>
       </section>
     </main>
