@@ -151,6 +151,36 @@ Opciones:
 - Windows Task Scheduler: ejecutar manual o periodicamente.
 - n8n: nodo SSH o Execute Command apuntando al comando anterior.
 
+## Deploy automatico
+
+Se incluye un workflow de GitHub Actions en [.github/workflows/deploy.yml](/Users/agustinirala/Desktop/runacode/PruebaTecnica/.github/workflows/deploy.yml:1) para desplegar en la VPS en cada push a `main`.
+
+Secrets requeridos en GitHub:
+
+```bash
+VPS_HOST=ip_o_dominio_de_la_vps
+VPS_USER=root
+VPS_PORT=22
+VPS_SSH_KEY=clave_privada_pem_para_entrar_a_la_vps
+VPS_APP_DIR=/root/PruebaTecnica
+```
+
+El workflow hace:
+
+```bash
+cd /root/PruebaTecnica
+git fetch --all --prune
+git reset --hard origin/main
+docker compose up -d --build
+docker image prune -f
+```
+
+Notas operativas:
+
+- Usa solo el directorio de este proyecto, no toca otros stacks.
+- La clave SSH del secret debe tener acceso a la VPS, no al repo.
+- Si preferis evitar `git reset --hard`, se puede cambiar a un flujo basado en `git pull --ff-only`, pero para un directorio de deploy dedicado el reset contra `origin/main` suele ser el camino mas deterministico.
+
 El flujo recomendado en n8n esta documentado en `deploy/n8n-flow-notes.md`:
 
 1. Cron trigger.
