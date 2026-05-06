@@ -59,6 +59,18 @@ function emptyDraft(): Draft {
   };
 }
 
+function parseApiDate(value: string): Date {
+  return new Date(/[zZ]|[+-]\d{2}:\d{2}$/.test(value) ? value : `${value}Z`);
+}
+
+function formatDate(value: string): string {
+  return parseApiDate(value).toLocaleDateString();
+}
+
+function formatDateTime(value: string): string {
+  return parseApiDate(value).toLocaleString();
+}
+
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -77,6 +89,7 @@ function App() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [importToken, setImportToken] = useState(() => localStorage.getItem(IMPORT_TOKEN_STORAGE_KEY) || "");
   const [editing, setEditing] = useState<number | "new" | null>(null);
   const [draft, setDraft] = useState<Draft>(emptyDraft());
@@ -128,15 +141,21 @@ function App() {
     }
     setLoading(true);
     setError("");
+    setNotice("");
     try {
-      await api<ImportLog>("/imports/run", {
+      const importLog = await api<ImportLog>("/imports/run", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${importToken.trim()}`,
         },
       });
-      await load();
+      setNotice(`Importacion finalizada. ${importLog.items_found} items procesados.`);
+      try {
+        await load();
+      } catch {
+        setNotice("Importacion finalizada, pero la pantalla no pudo actualizarse automaticamente. Recarga para ver los cambios.");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error importando datos");
     } finally {
@@ -154,6 +173,7 @@ function App() {
     }
     setLoading(true);
     setError("");
+    setNotice("");
     try {
       await api<{ status: string; deleted_places: number; deleted_logs: number }>("/places/reset", {
         method: "DELETE",
@@ -164,7 +184,12 @@ function App() {
       });
       setEditing(null);
       setDraft(emptyDraft());
-      await load();
+      setNotice("Base reiniciada correctamente.");
+      try {
+        await load();
+      } catch {
+        setNotice("Base reiniciada, pero la pantalla no pudo actualizarse automaticamente. Recarga para ver los cambios.");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error vaciando la base");
     } finally {
@@ -275,6 +300,7 @@ function App() {
           </div>
 
           {error && <div className="error">{error}</div>}
+          {notice && <div className="notice">{notice}</div>}
 
           {editing && (
             <Editor draft={draft} setDraft={setDraft} onSave={save} onCancel={() => setEditing(null)} />
@@ -289,7 +315,7 @@ function App() {
                   <small>{place.description || "Sin descripcion"}</small>
                 </div>
                 <span className="badge">{place.category}</span>
-                <span>{new Date(place.fetched_at).toLocaleDateString()}</span>
+                <span>{formatDate(place.fetched_at)}</span>
                 <div className="actions">
                   <button title="Editar" onClick={() => startEdit(place)}><Pencil size={16} /></button>
                   <button title="Desactivar" onClick={() => deactivate(place.id)}><Trash2 size={16} /></button>
@@ -309,7 +335,7 @@ function App() {
             {logs.map((log) => (
               <div key={log.id} className="log">
                 <strong>{log.status}</strong>
-                <span>{new Date(log.started_at).toLocaleString()}</span>
+                <span>{formatDateTime(log.started_at)}</span>
                 <p>{log.items_found} encontrados · {log.created_count} nuevos · {log.updated_count} actualizados</p>
                 {log.error_message && <small>{log.error_message}</small>}
               </div>

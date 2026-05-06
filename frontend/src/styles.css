@@ -268,6 +268,13 @@ h2 {
   padding: 12px 14px;
 }
 
+.notice {
+  background: #e8f4ee;
+  border-bottom: 1px solid #b9d8ca;
+  color: #1f5b4d;
+  padding: 12px 14px;
+}
+
 .editor {
   border-bottom: 1px solid #ece8de;
   display: grid;
