@@ -59,8 +59,50 @@ textarea {
   flex-direction: column;
   margin: 0 auto;
   max-width: 1280px;
-  min-height: 100vh;
+  height: 100vh;
   padding: 28px;
+}
+
+.app-meta {
+  align-items: center;
+  backdrop-filter: blur(10px);
+  background: rgba(246, 244, 239, 0.9);
+  border: 1px solid #ddd9ce;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.app-meta__identity,
+.app-meta__repo {
+  align-items: center;
+  color: #33423d;
+  display: inline-flex;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.app-meta__identity {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.app-meta__repo {
+  border: 1px solid #d8d5ca;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 10px;
+}
+
+.app-meta__repo:hover {
+  border-color: #2d705f;
+  color: #1f5b4d;
 }
 
 .topbar {
@@ -145,7 +187,7 @@ h2 {
   display: grid;
   gap: 18px;
   grid-template-columns: minmax(0, 1fr) 340px;
-  max-height: calc(100vh - 220px);
+  height: min(100%, calc(100vh - 220px));
   min-height: 0;
 }
 
@@ -332,6 +374,16 @@ h2 {
     flex-direction: column;
   }
 
+  .app-meta {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .app-meta__repo {
+    justify-content: center;
+  }
+
   .import-controls {
     flex-direction: column;
     width: 100%;
@@ -368,6 +420,7 @@ h2 {
 
 @media (max-width: 920px) {
   .shell {
+    height: auto;
     padding: 18px;
   }
 

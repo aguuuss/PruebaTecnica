@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { RefreshCcw, Search, Trash2, Save, Pencil, X, Play, DatabaseZap } from "lucide-react";
+import { RefreshCcw, Search, Trash2, Save, Pencil, X, Play, DatabaseZap, Github, UserRound } from "lucide-react";
 import "./styles.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const IMPORT_TOKEN_STORAGE_KEY = "import-run-token";
+const REPOSITORY_URL = "https://github.com/aguuuss/PruebaTecnica";
 
 type Place = {
   id: number;
@@ -214,6 +215,16 @@ function App() {
 
   return (
     <main className="shell">
+      <div className="app-meta">
+        <div className="app-meta__identity">
+          <UserRound size={16} />
+          <span>Irala Damian Agustin</span>
+        </div>
+        <a className="app-meta__repo" href={REPOSITORY_URL} target="_blank" rel="noreferrer">
+          <Github size={16} />
+          <span>Repositorio</span>
+        </a>
+      </div>
       <header className="topbar">
         <div>
           <p className="eyebrow">Automatizacion + IA</p>
