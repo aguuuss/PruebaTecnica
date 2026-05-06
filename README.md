@@ -146,11 +146,6 @@ Fallback local:
 - si detecta `rest` o `parrilla` -> `restaurante`
 - si no encuentra mejor senal -> `bar`
 
-Esto permite defender la decision tecnica:
-
-- la IA agrega valor
-- pero no es un punto unico de falla
-- el sistema sigue operando sin credenciales externas
 
 ## Como probar la IA y sus logs
 
@@ -376,9 +371,6 @@ Alternativa de automatizacion:
 4. leer salida
 5. enviar notificacion
 
-Referencia:
-
-- [deploy/n8n-flow-notes.md](/Users/agustinirala/Desktop/runacode/PruebaTecnica/deploy/n8n-flow-notes.md:1)
 
 ## Deteccion de duplicados
 
