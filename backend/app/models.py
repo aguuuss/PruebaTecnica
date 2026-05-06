@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, func
 
@@ -22,7 +22,7 @@ class Place(Base):
     services = Column(Text, nullable=True)
     description = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
-    fetched_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fetched_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -38,5 +38,5 @@ class ImportLog(Base):
     updated_count = Column(Integer, default=0, nullable=False)
     duplicate_count = Column(Integer, default=0, nullable=False)
     error_message = Column(Text, nullable=True)
-    started_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    started_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
     finished_at = Column(DateTime, nullable=True)

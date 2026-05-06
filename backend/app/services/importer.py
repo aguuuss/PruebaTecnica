@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from difflib import SequenceMatcher
 import logging
 
@@ -78,7 +78,7 @@ class PlaceImporter:
                     "services": item.services,
                     "description": enriched["description"],
                     "is_active": True,
-                    "fetched_at": datetime.utcnow(),
+                    "fetched_at": datetime.now(UTC),
                 }
 
                 if existing:
@@ -104,7 +104,7 @@ class PlaceImporter:
             log.error_message = str(exc)
             logger.exception("Import failed")
         finally:
-            log.finished_at = datetime.utcnow()
+            log.finished_at = datetime.now(UTC)
             self.db.commit()
             self.db.refresh(log)
             self.slack.notify_import_finished(
