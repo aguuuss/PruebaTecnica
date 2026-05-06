@@ -343,12 +343,19 @@ docker image prune -f
 ![Slack import exitosa](docs/screenshots/slack-success.png)
 
 ### Slack - importacion con fallback
-61
+
 ![Slack import con fallback](docs/screenshots/slack-fallback.png)
 
 ### Slack - importacion con error
 
 ![Slack import con error](docs/screenshots/slack-error.png)
+
+
+### Slack - cronjob 
+
+![Slack cronjob](docs/screenshots/slack-cronjob.png)
+
+Se ve el horario a las 6:00 como se programa en el cronjob del servidor
 
 ### GitHub Actions - deploy exitoso
 
