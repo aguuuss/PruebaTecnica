@@ -192,12 +192,7 @@ Si queres probarlo desde la UI:
 3. ejecutar `Importar datos`
 4. mirar la consola donde corre `uvicorn`
 
-Con eso se puede mostrar claramente:
 
-- cuando interviene OpenAI
-- que payload recibe
-- que responde
-- y como el sistema cae al fallback si la IA no esta disponible
 
 ## Seguridad operativa
 
