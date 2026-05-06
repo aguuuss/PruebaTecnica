@@ -33,6 +33,28 @@ class SlackNotifier:
         except Exception:
             return
 
+    def notify_job_failure(self, source: str, error_message: str) -> None:
+        if not self.webhook_url:
+            return
+
+        payload = {
+            "text": "\n".join(
+                [
+                    "[ERROR] Importacion de lugares",
+                    f"Fuente: {source}",
+                    "Estado: error",
+                    "Etapa: inicializacion",
+                    f"Error: {error_message}",
+                ]
+            )
+        }
+        try:
+            with httpx.Client(timeout=10) as client:
+                response = client.post(self.webhook_url, json=payload)
+                response.raise_for_status()
+        except Exception:
+            return
+
     def build_import_payload(self, summary: SlackImportSummary) -> dict[str, str]:
         log = summary.log
         status_label = "OK" if log.status == "success" else "ERROR"

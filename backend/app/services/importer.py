@@ -62,8 +62,8 @@ class PlaceImporter:
 
             for item in scraped:
                 raw = item.__dict__
-                enriched = self.ai.enrich(raw)
                 existing = self._find_duplicate(raw)
+                enriched = self._resolve_enrichment(raw, existing)
                 payload = {
                     "name": item.name,
                     "normalized_name": normalize_text(item.name, remove_fillers=True),
@@ -118,6 +118,22 @@ class PlaceImporter:
             )
 
         return log
+
+    def _resolve_enrichment(self, raw: dict, existing: Place | None) -> dict:
+        if not existing:
+            return self.ai.enrich(raw)
+
+        if existing.category and existing.description:
+            return {
+                "category": existing.category,
+                "description": existing.description,
+            }
+
+        enriched = self.ai.enrich(raw)
+        return {
+            "category": existing.category or enriched["category"],
+            "description": existing.description or enriched["description"],
+        }
 
     def _find_duplicate(self, item: dict) -> Place | None:
         incoming_key = dedupe_key(item["name"], item.get("address"))

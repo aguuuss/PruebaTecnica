@@ -337,6 +337,33 @@ docker compose up -d --build
 docker image prune -f
 ```
 
+## Evidencia
+
+
+### Dashboard con datos importados
+
+
+### Slack - importacion exitosa
+
+![Slack import exitosa](docs/screenshots/slack-success.png)
+
+### Slack - importacion con fallback
+61
+![Slack import con fallback](docs/screenshots/slack-fallback.png)
+
+### Slack - importacion con error
+
+![Slack import con error](docs/screenshots/slack-error.png)
+
+### GitHub Actions - deploy exitoso
+
+![GitHub Actions deploy](docs/screenshots/github-actions-deploy.png)
+
+### Cron configurado en VPS
+
+![Cron VPS](docs/screenshots/cron-vps.png)
+
+
 ## n8n
 
 Alternativa de automatizacion:
